@@ -3,7 +3,18 @@
         :key="updateComponent"
         :timeMax="content.timeMax"
         :timeMin="content.timeMin"
-        @selected="onUpdateDate"
+        :duration="content.duration"
+        :busyTime="content.busyTime"
+        :hideBusyTime="content.hideBusyTime"
+        @selected="
+            e => {
+                $emit('trigger-event', {
+                    name: 'event:selected',
+                    event: e,
+                });
+                onUpdateDate(e);
+            }
+        "
     />
 </template>
 

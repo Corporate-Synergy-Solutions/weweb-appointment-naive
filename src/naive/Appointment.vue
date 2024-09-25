@@ -4,8 +4,15 @@
             <n-date-picker v-model:value="date" :actions="[]" :is-date-disabled="dateDisabled" panel type="date" />
             <n-divider vertical class="divider" />
             <n-flex vertical class="time">
-                <n-radio-group v-model:value="time" name="radio-button-group">
-                    <n-radio-button v-for="a in arrTime" :key="a" :value="a" :label="a" />
+                <n-radio-group v-if="date" v-model:value="time" name="radio-button-group">
+                    <template v-for="a in arrTime" :key="a">
+                        <n-radio-button
+                            v-if="hideBusyTime ? !timeDisabled(a) : true"
+                            :value="a"
+                            :label="a"
+                            :disabled="timeDisabled(a)"
+                        />
+                    </template>
                 </n-radio-group>
             </n-flex>
         </n-flex>
@@ -13,39 +20,48 @@
 </template>
 
 <script setup>
+import { TZDate } from '@date-fns/tz';
 import { NDatePicker, NCard, NDivider, NFlex, NRadioGroup, NRadioButton } from 'naive-ui';
-import { ref, onMounted, computed, watch } from 'vue';
-import { addMinutes, format } from 'date-fns';
+import { ref, onMounted, watch } from 'vue';
+import { addMinutes, format, isWithinInterval } from 'date-fns';
 
 const props = defineProps({
-    timeMin: { type: String, required: true },
-    timeMax: { type: String, required: true },
+    timeMin: { type: [String, Number], default: '' },
+    timeMax: { type: [String, Number], default: '' },
+    duration: { type: [Number, String], default: 30 },
+    hideBusyTime: { type: Boolean, default: false },
+    busyTime: { type: [Array, String], default: () => [] },
+    startTime: { type: Number, default: 9 },
+    endTime: { type: Number, default: 17 },
 });
+
 const emit = defineEmits(['selected']);
 
 const time = ref();
 const date = ref();
-const timeMin = '2024-09-01T05:00:00.000Z';
-const timeMax = '2024-09-10T05:00:00.000Z';
-const duration = 30;
 const arrTime = ref([]);
 
 function initArrTime() {
-    var d = new Date();
-    d.setHours(8, 0, 0, 0);
-    while (d.getHours() <= 22) {
-        d = addMinutes(d, duration);
-        console.log(d.getHours());
+    let d = new TZDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone);
+    d.setHours(props.startTime, 0, 0, 0);
+    arrTime.value.push(format(d, 'HH:mm'));
+    while (d.getHours() + d.getMinutes() / 60 + props.duration / 60 < props.endTime) {
+        d = addMinutes(d, props.duration);
         arrTime.value.push(format(d, 'HH:mm'));
     }
 }
 
-const getSelectedTime = computed(() =>
-    date.value && time.value ? `${format(date.value, 'yyyy:MM:dd')}T${time.value}:00` : ''
-);
+function getDateTimeLocalTimezone(time) {
+    const t = time.split(':');
+    const m = parseInt(t[0]) * 60 + parseInt(t[1]);
+    const d = new TZDate(date.value, Intl.DateTimeFormat().resolvedOptions().timeZone);
+    d.setHours(0, 0, 0, 0);
+    d.setMinutes(m);
+    return d;
+}
 
-watch(getSelectedTime, val => {
-    if (val) emit('selected', val);
+watch(time, val => {
+    emit('selected', getDateTimeLocalTimezone(val).toISOString());
 });
 
 onMounted(() => {
@@ -53,23 +69,28 @@ onMounted(() => {
 });
 
 function dateDisabled(ts) {
+    if (!props.timeMax || !props.timeMin) return false;
     const d = new Date(ts);
-    const date = d.getDate();
-    const month = d.getMonth();
-    const year = d.getFullYear();
-    const currentDate = new Date();
-    const timeMaxD = props.timeMax
-        ? new Date(props.timeMax)
-        : new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-    const timeMinD = props.timeMin
-        ? new Date(props.timeMin)
-        : new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const timeMaxD = new Date(props.timeMax);
+    const timeMinD = new Date(props.timeMin);
+    timeMinD.setDate(timeMinD.getDate() - 1);
+    return !isWithinInterval(d, {
+        start: timeMinD,
+        end: timeMaxD,
+    });
+}
+
+function timeDisabled(t) {
+    if (!props.busyTime.length) return false;
+    const d = getDateTimeLocalTimezone(t);
 
     return (
-        date < timeMinD.getDate() ||
-        date > timeMaxD.getDate() ||
-        (month !== timeMinD.getMonth() && month !== timeMaxD.getMonth()) ||
-        (year !== timeMinD.getFullYear() && year !== timeMaxD.getFullYear())
+        props.busyTime.findIndex(e =>
+            isWithinInterval(d, {
+                start: new Date(e.start),
+                end: new Date(e.end),
+            })
+        ) != -1
     );
 }
 </script>

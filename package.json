@@ -14,6 +14,7 @@
     "prettier": "^3.3.3"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.1.2",
     "date-fns": "^2.30.0",
     "naive-ui": "^2.39.0"
   }
