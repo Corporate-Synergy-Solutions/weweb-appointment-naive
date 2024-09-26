@@ -93,7 +93,9 @@ export default {
         {
             name: 'event:selected',
             label: { en: 'On time selected' },
-            event: '',
+            event: {
+                dateTime: '',
+            },
         },
     ],
 };

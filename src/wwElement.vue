@@ -10,7 +10,9 @@
             e => {
                 $emit('trigger-event', {
                     name: 'event:selected',
-                    event: e,
+                    event: {
+                        dateTime: e,
+                    },
                 });
                 onUpdateDate(e);
             }
