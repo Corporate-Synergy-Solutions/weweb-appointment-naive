@@ -6,6 +6,8 @@
         :duration="content.duration"
         :busyTime="content.busyTime"
         :hideBusyTime="content.hideBusyTime"
+        :startTime="content.startTime"
+        :endTime="content.endTime"
         @selected="
             e => {
                 $emit('trigger-event', {
