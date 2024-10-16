@@ -7,7 +7,7 @@ export default {
     properties: {
         idComponentBind: {
             label: {
-                en: 'Date output variable',
+                en: 'Form output variable',
             },
             type: 'Text',
             defaultValue: '',
@@ -91,11 +91,9 @@ export default {
     },
     triggerEvents: [
         {
-            name: 'event:selected',
-            label: { en: 'On time selected' },
-            event: {
-                dateTime: '',
-            },
+            name: 'form:submit',
+            label: { en: 'On form submitted' },
+            event: {},
         },
     ],
 };
