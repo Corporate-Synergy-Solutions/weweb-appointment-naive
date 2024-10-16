@@ -337,7 +337,7 @@ function timeDisabled(t) {
             e =>
                 e.start &&
                 e.end &&
-                isWithinInterval(dtz, {
+                !isWithinInterval(dtz, {
                     start: getDateTimeWithTimezone(e.start),
                     end: getDateTimeWithTimezone(e.end),
                 })
