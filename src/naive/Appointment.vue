@@ -16,7 +16,9 @@
                             <n-flex v-if="time && date" align="center">
                                 <Calendar size="16" />
                                 <p class="selected-datetime">
-                                    {{ time ? format(getDateTimeLocalTimezone(time), 'iiii, do MMMM yyyy HH:mm') : '' }}
+                                    {{
+                                        time ? format(getDateTimeLocalTimezone(time), 'iiii, do MMMM yyyy K:mmaa') : ''
+                                    }}
                                 </p>
                             </n-flex>
                             <n-flex align="center">
@@ -55,7 +57,7 @@
                                                 v-if="hideBusyTime ? !timeDisabled(a) : true"
                                                 :checked="time === a"
                                                 :value="a"
-                                                :label="a"
+                                                :label="format24To12(a)"
                                                 :disabled="timeDisabled(a)"
                                             />
                                         </template>
@@ -310,6 +312,12 @@ function dateDisabledByDay(d, arr) {
         (arr.includes('saturday') && isSaturday(d)) ||
         (arr.includes('sunday') && isSunday(d))
     );
+}
+
+function format24To12(timeString) {
+    const [hourString, minute] = timeString.split(':');
+    const hour = +hourString % 24;
+    return (hour % 12 || 12) + ':' + minute + (hour < 12 ? 'AM' : 'PM');
 }
 
 function timeDisabled(t) {
