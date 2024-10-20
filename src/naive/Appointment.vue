@@ -144,6 +144,9 @@ import {
     isSaturday,
     isMonday,
     getDay,
+    isPast,
+    addHours,
+    isAfter,
 } from 'date-fns';
 
 const props = defineProps({
@@ -161,6 +164,7 @@ const props = defineProps({
     userName: { type: String },
     photoUrl: { type: String },
     timezone: { type: String },
+    minTimeInAdvance: { type: Number },
     configId: { type: String },
     availability: {
         type: Object,
@@ -294,6 +298,7 @@ function dateDisabled(ts) {
     const timeMinD = new TZDate(new Date(props.timeMin), props.timezone);
     timeMinD.setDate(timeMinD.getDate() - 1);
     return (
+        isPast(d) ||
         dateDisabledByDay(d, disabledDays.value) ||
         !isWithinInterval(d, {
             start: timeMinD,
@@ -332,8 +337,10 @@ function timeDisabled(t) {
     };
     const d = getDateTimeLocalTimezone(t);
     const dtz = getDateTimeWithTimezone(t);
+    const minTimeInAdvance = addHours(new Date(), props.minTimeInAdvance);
 
     return (
+        isAfter(minTimeInAdvance, d) ||
         (props.busyTime.length &&
             props.busyTime.findIndex(e =>
                 isWithinInterval(d, {

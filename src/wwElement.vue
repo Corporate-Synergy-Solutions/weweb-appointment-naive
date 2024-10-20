@@ -17,6 +17,7 @@
         :description="description"
         :cancellationPolicy="cancellationPolicy"
         :photoUrl="photoUrl"
+        :minTimeInAdvance="minTimeInAdvance"
         @submit="
             e => {
                 $emit('trigger-event', {
@@ -48,6 +49,7 @@ const photoUrl = ref('');
 const timezone = ref('');
 const availability = ref({});
 const configId = ref('');
+const minTimeInAdvance = ref(4);
 
 const updateComponent = ref(1);
 watch(
@@ -83,6 +85,7 @@ async function fetchConfig() {
         description.value = res.data.bookingPage.description;
         cancellationPolicy.value = res.data.bookingPage.cancellationPolicy;
         timezone.value = res.data.timezone;
+        minTimeInAdvance.value = res.data.minTimeInAdvance;
         const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = res.data.generalAvailability;
         availability.value = { monday, tuesday, wednesday, thursday, friday, saturday, sunday };
         configId.value = id;
