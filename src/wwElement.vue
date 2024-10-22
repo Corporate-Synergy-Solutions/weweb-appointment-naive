@@ -18,6 +18,9 @@
         :cancellationPolicy="cancellationPolicy"
         :photoUrl="photoUrl"
         :minTimeInAdvance="minTimeInAdvance"
+        :maxTimeInAdvance="maxTimeInAdvance"
+        :bufferTimeBefore="bufferTimeBefore"
+        :bookingForm="bookingForm"
         @submit="
             e => {
                 $emit('trigger-event', {
@@ -49,7 +52,10 @@ const photoUrl = ref('');
 const timezone = ref('');
 const availability = ref({});
 const configId = ref('');
-const minTimeInAdvance = ref(4);
+const minTimeInAdvance = ref(0);
+const maxTimeInAdvance = ref(0);
+const bufferTimeBefore = ref(0);
+const bookingForm = ref([]);
 
 const updateComponent = ref(1);
 watch(
@@ -85,10 +91,15 @@ async function fetchConfig() {
         description.value = res.data.bookingPage.description;
         cancellationPolicy.value = res.data.bookingPage.cancellationPolicy;
         timezone.value = res.data.timezone;
-        minTimeInAdvance.value = res.data.minTimeInAdvance;
+        minTimeInAdvance.value = res.data.useMinTimeInAdvance ? res.data.minTimeInAdvance : 0;
+        maxTimeInAdvance.value = res.data.useMaxTimeInAdvance ? res.data.maxTimeInAdvance : 9999;
         const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = res.data.generalAvailability;
         availability.value = { monday, tuesday, wednesday, thursday, friday, saturday, sunday };
         configId.value = id;
+        bufferTimeBefore.value = res.data.bookedAppointmentSettings.useBufferTimeBefore
+            ? res.data.bookedAppointmentSettings.bufferTimeBefore
+            : 0;
+        bookingForm.value = res.data.bookingPage.bookingForm.fields;
         updateComponent.value += 1;
     } catch (error) {
         console.error(error.message);

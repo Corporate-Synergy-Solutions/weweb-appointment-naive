@@ -81,14 +81,20 @@
                         <n-flex>
                             <div :style="'min-height: 320px; min-width: 547px'">
                                 <n-form ref="formRef" :model="form" :rules="rules">
-                                    <n-form-item label="First name" path="firstName">
-                                        <n-input v-model:value="form.firstName" placeholder="First name" />
-                                    </n-form-item>
-                                    <n-form-item label="Last name" path="lastName">
-                                        <n-input v-model:value="form.lastName" placeholder="Last name" />
-                                    </n-form-item>
-                                    <n-form-item label="Email" path="email">
-                                        <n-input type="email" v-model:value="form.email" placeholder="Email" />
+                                    <n-form-item
+                                        v-for="item in components"
+                                        :label="item.label"
+                                        :path="item.path"
+                                        :key="item.path"
+                                    >
+                                        <component
+                                            :is="item.name"
+                                            v-model:value="form[item.path]"
+                                            v-bind="{
+                                                type: item.type || undefined,
+                                            }"
+                                        >
+                                        </component>
                                     </n-form-item>
                                 </n-form>
                             </div>
@@ -114,9 +120,7 @@
     </n-config-provider>
 </template>
 
-<script setup>
-import { Calendar, CircleAlert, Hourglass, Text } from 'lucide-vue-next';
-import { TZDate } from '@date-fns/tz';
+<script>
 import {
     NDatePicker,
     NDivider,
@@ -131,6 +135,27 @@ import {
     NInput,
     NConfigProvider,
 } from 'naive-ui';
+export default {
+    components: {
+        NDatePicker,
+        NDivider,
+        NFlex,
+        NRadioGroup,
+        NRadioButton,
+        NAvatar,
+        NButton,
+        NSpin,
+        NForm,
+        NFormItem,
+        NInput,
+        NConfigProvider,
+    },
+};
+</script>
+
+<script setup>
+import { Calendar, CircleAlert, Hourglass, Text } from 'lucide-vue-next';
+import { TZDate } from '@date-fns/tz';
 import { ref, onBeforeMount } from 'vue';
 import {
     addMinutes,
@@ -165,7 +190,10 @@ const props = defineProps({
     photoUrl: { type: String },
     timezone: { type: String },
     minTimeInAdvance: { type: Number },
+    maxTimeInAdvance: { type: Number },
     configId: { type: String },
+    bufferTimeBefore: { type: Number },
+    bookingForm: { type: Array },
     availability: {
         type: Object,
         default: () => {
@@ -196,35 +224,46 @@ const themeOverrides = {
 };
 
 const emit = defineEmits(['submit']);
-const form = ref({
-    firstName: '',
-    lastName: '',
-    email: '',
-});
-
-const rules = {
-    firstName: {
-        required: true,
-        message: 'This field is required',
-        trigger: 'blur',
-    },
-    lastName: {
-        required: true,
-        message: 'This field is required',
-        trigger: 'blur',
-    },
-    email: [
-        {
-            required: true,
-            message: 'This field is required',
-            trigger: 'blur',
-        },
-        { validator: validateEmail, message: 'Email is not valid', trigger: 'input' },
-    ],
-};
+const form = ref({});
+const rules = ref({});
+const components = ref([]);
 
 function validateEmail(rule, value) {
     return /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(value);
+}
+
+function initBookingForm() {
+    if (!props.bookingForm.length) return;
+    const arrComp = [];
+    let r = {};
+    let formVal = {};
+
+    props.bookingForm.forEach(item => {
+        const key = item.name === 'customItem' ? item.label : item.name;
+        if (item.type === 'email') {
+            arrComp.push({ name: 'n-input', type: 'email', label: item.label, path: key });
+            r[key] = [
+                {
+                    required: true,
+                    message: 'This field is required',
+                    trigger: ['input', 'blur', 'change', 'focus'],
+                },
+                { validator: validateEmail, message: 'Email is not valid', trigger: 'input' },
+            ];
+        } else {
+            arrComp.push({ name: 'n-input', type: 'text', label: item.label, path: key });
+            r[key] = {
+                required: true,
+                message: 'This field is required',
+                trigger: ['input', 'blur', 'change', 'focus'],
+            };
+        }
+        formVal[key] = '';
+    });
+
+    form.value = formVal;
+    components.value = arrComp;
+    rules.value = r;
 }
 
 const isLoadingSubmit = ref(false);
@@ -254,7 +293,7 @@ function initArrTime() {
     d.setHours(props.startTime, 0, 0, 0);
     arrTime.value.push(format(d, 'HH:mm'));
     while (d.getHours() + d.getMinutes() / 60 + props.duration / 60 < props.endTime) {
-        d = addMinutes(d, props.duration);
+        d = addMinutes(d, props.duration + props.bufferTimeBefore);
         arrTime.value.push(format(d, 'HH:mm'));
     }
 }
@@ -282,6 +321,7 @@ const disabledDays = ref([]);
 onBeforeMount(() => {
     checkDisabledDays();
     initArrTime();
+    initBookingForm();
 });
 
 function checkDisabledDays() {
@@ -297,10 +337,14 @@ function dateDisabled(ts) {
     const timeMaxD = new TZDate(new Date(props.timeMax), props.timezone);
     const timeMinD = new TZDate(new Date(props.timeMin), props.timezone);
     timeMinD.setDate(timeMinD.getDate() - 1);
+    const maxDateInAdvance = new Date();
+    maxDateInAdvance.setDate(maxDateInAdvance.getDate() + props.maxTimeInAdvance || 0);
     return (
-        isPast(d) ||
-        dateDisabledByDay(d, disabledDays.value) ||
+        isPast(d) || // cannot select date in past
+        isAfter(d, maxDateInAdvance) || // cannot select date in future more than maxTimeInAdvance
+        dateDisabledByDay(d, disabledDays.value) || // disabled certain days
         !isWithinInterval(d, {
+            // cannot select date outside timeframe
             start: timeMinD,
             end: timeMaxD,
         })
@@ -326,6 +370,33 @@ function format24To12(timeString) {
 }
 
 function timeDisabled(t) {
+    const d = getDateTimeLocalTimezone(t);
+    const dtz = getDateTimeWithTimezone(t);
+
+    return getDisabledMinTimeInAdvance(d) || getDisabledBusyDay(d) || getDisabledUnavailableDay(dtz);
+}
+
+function getDisabledMinTimeInAdvance(date) {
+    // only allow book certain hours frow now
+    const minTimeInAdvance = addHours(new Date(), props.minTimeInAdvance);
+    return isAfter(minTimeInAdvance, date);
+}
+
+function getDisabledBusyDay(date) {
+    // disable busy time
+    return (
+        props.busyTime.length &&
+        props.busyTime.findIndex(e =>
+            isWithinInterval(date, {
+                start: new TZDate(new Date(e.start), props.timezone),
+                end: new TZDate(new Date(e.end), props.timezone),
+            })
+        ) != -1
+    );
+}
+
+function getDisabledUnavailableDay(date) {
+    // only enable time in available time
     const dayMap = {
         0: 'sunday',
         1: 'monday',
@@ -335,24 +406,12 @@ function timeDisabled(t) {
         5: 'friday',
         6: 'saturday',
     };
-    const d = getDateTimeLocalTimezone(t);
-    const dtz = getDateTimeWithTimezone(t);
-    const minTimeInAdvance = addHours(new Date(), props.minTimeInAdvance);
-
     return (
-        isAfter(minTimeInAdvance, d) ||
-        (props.busyTime.length &&
-            props.busyTime.findIndex(e =>
-                isWithinInterval(d, {
-                    start: new Date(e.start),
-                    end: new Date(e.end),
-                })
-            ) != -1) ||
-        props.availability[dayMap[getDay(dtz)]].findIndex(
+        props.availability[dayMap[getDay(date)]].findIndex(
             e =>
                 e.start &&
                 e.end &&
-                !isWithinInterval(dtz, {
+                !isWithinInterval(date, {
                     start: getDateTimeWithTimezone(e.start),
                     end: getDateTimeWithTimezone(e.end),
                 })

@@ -42,32 +42,6 @@ export default {
             defaultValue: 60,
             bindable: true,
         },
-        startTime: {
-            label: {
-                en: 'Start time',
-            },
-            type: 'Number',
-            options: {
-                min: 1,
-                max: 24,
-                step: 1,
-            },
-            defaultValue: 9,
-            bindable: true,
-        },
-        endTime: {
-            label: {
-                en: 'End time',
-            },
-            type: 'Number',
-            options: {
-                min: 1,
-                max: 24,
-                step: 1,
-            },
-            defaultValue: 17,
-            bindable: true,
-        },
         busyTime: {
             label: {
                 en: 'Busy time',
