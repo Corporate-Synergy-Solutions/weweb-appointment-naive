@@ -87,14 +87,13 @@
                                         :path="item.path"
                                         :key="item.path"
                                     >
-                                        <component
-                                            :is="item.name"
+                                        <n-input
                                             v-model:value="form[item.path]"
                                             v-bind="{
                                                 type: item.type || undefined,
                                             }"
                                         >
-                                        </component>
+                                        </n-input>
                                     </n-form-item>
                                 </n-form>
                             </div>
@@ -120,7 +119,9 @@
     </n-config-provider>
 </template>
 
-<script>
+<script setup>
+import { Calendar, CircleAlert, Hourglass, Text } from 'lucide-vue-next';
+import { TZDate } from '@date-fns/tz';
 import {
     NDatePicker,
     NDivider,
@@ -135,27 +136,6 @@ import {
     NInput,
     NConfigProvider,
 } from 'naive-ui';
-export default {
-    components: {
-        NDatePicker,
-        NDivider,
-        NFlex,
-        NRadioGroup,
-        NRadioButton,
-        NAvatar,
-        NButton,
-        NSpin,
-        NForm,
-        NFormItem,
-        NInput,
-        NConfigProvider,
-    },
-};
-</script>
-
-<script setup>
-import { Calendar, CircleAlert, Hourglass, Text } from 'lucide-vue-next';
-import { TZDate } from '@date-fns/tz';
 import { ref, onBeforeMount } from 'vue';
 import {
     addMinutes,
