@@ -1,6 +1,6 @@
 {
   "name": "weweb-appointment-naive",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "scripts": {
     "build": "weweb build",
     "serve": "weweb serve"
